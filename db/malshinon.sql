@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS people(
       type ENUM("reporter", "target", "both", "potential_agent"),
       num_reports INT DEFAULT 0,
       -- used if person is a reporter
-      num_mentions INT DEFAULT 0 -- used if person is a target
+      num_mentions INT DEFAULT 0, -- used if person is a target
+      CONSTRAINT full_name UNIQUE (first_name, last_name)
 );
 -- CREATE TABLE IF NOT EXISTS intel_reports;
 CREATE TABLE IF NOT EXISTS intel_reports(
