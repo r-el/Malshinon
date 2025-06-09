@@ -89,7 +89,7 @@ namespace Malshinon.Entities
                 string firstName, lastName;
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
                 personAdded = _dal.AddPerson(new Person(null, firstName, lastName, null));
-                
+
                 if (!personAdded)
                 {
                     PrintError($"שגיאה: האדם {firstName} {lastName} כבר קיים במערכת!");
@@ -97,7 +97,7 @@ namespace Malshinon.Entities
                     Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
                 }
             } while (!personAdded);
-            
+
             PrintSection("האדם נוסף בהצלחה למערכת! (Person added successfully!)", ConsoleColor.Green);
         }
 
