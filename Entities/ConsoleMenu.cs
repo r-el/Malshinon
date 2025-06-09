@@ -32,6 +32,7 @@ namespace Malshinon.Entities
 
         private static void PrintMenu()
         {
+            // TODO: Add option to select a language
             StringBuilder sb = new();
             sb.AppendLine("╔════════════════════════════════════════════════════════════════╗");
             sb.AppendLine("║          MALSHINON: — Community Intel Reporting System         ║");
@@ -88,8 +89,16 @@ namespace Malshinon.Entities
                 string firstName, lastName;
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
                 personAdded = _dal.AddPerson(new Person(null, firstName, lastName, null));
-                // TODO: Add clear err when the person already exist
+
+                if (!personAdded)
+                {
+                    PrintError($"שגיאה: האדם {firstName} {lastName} כבר קיים במערכת!");
+                    PrintError($"Error: Person {firstName} {lastName} already exists in the system!");
+                    Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
+                }
             } while (!personAdded);
+
+            PrintSection("האדם נוסף בהצלחה למערכת! (Person added successfully!)", ConsoleColor.Green);
         }
 
         private static void FindPerson()
