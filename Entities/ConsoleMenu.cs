@@ -1,5 +1,6 @@
 using System.Text;
 using Malshinon.DAL;
+using Type = Malshinon.Enums.Type;
 
 namespace Malshinon.Entities
 {
@@ -66,7 +67,7 @@ namespace Malshinon.Entities
                     Console.WriteLine(string.Join("\n", _dal.FetchPeople()));
                     break;
                 case 4:
-                    PrintSection("[הוסף דוח מודיעין חדש (Add New Intelligence Report) - טרם מומש]", ConsoleColor.Green);
+                    AddIntelReport();
                     break;
                 case 5:
                     PrintSection("[הצג התראות (View Alerts) - טרם מומש]", ConsoleColor.Green);
@@ -83,34 +84,105 @@ namespace Malshinon.Entities
 
         private static void AddNewPerson()
         {
-            bool personAdded;
+            Person? person;
+            string firstName;
+            string? lastName;
+
             do
             {
-                string firstName, lastName;
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
-                personAdded = _dal.AddPerson(new Person(null, firstName, lastName, null));
+                person = _dal.GetPersonByFullName(firstName, lastName);
+                if (person is null)
+                    break;
 
-                if (!personAdded)
-                {
-                    PrintError($"שגיאה: האדם {firstName} {lastName} כבר קיים במערכת!");
-                    PrintError($"Error: Person {firstName} {lastName} already exists in the system!");
-                    Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
-                }
-            } while (!personAdded);
+                PrintError($"שגיאה: האדם {person.FirstName} {person.LastName} כבר קיים במערכת! (id={person.Id})");
+                PrintError($"Error: Person {person.FirstName} {person.LastName} already exists in the system! (id={person.Id})");
+                Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
+            } while (true);
 
-            PrintSection("האדם נוסף בהצלחה למערכת! (Person added successfully!)", ConsoleColor.Green);
+            person = _dal.AddPerson(new Person(firstName, lastName));
+            PrintSection($"האדם נוסף בהצלחה למערכת! (Person added successfully!) (id={person?.Id})", ConsoleColor.Green);
         }
 
         private static void FindPerson()
         {
-            string firstName, lastName;
-            (firstName, lastName) = Person.ReadFullNameFromConsole();
-            Console.WriteLine(_dal.GetPersonByFullName(firstName, lastName));
+            (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
+            Person? person = _dal.GetPersonByFullName(reporterFirstName, reporterLastName);
+
+            if (person != null)
+                Console.WriteLine(person);
+            else
+            {
+                PrintError($"האדם {reporterFirstName} {reporterLastName} לא נמצא במערכת.");
+                PrintError($"Person {reporterFirstName} {reporterLastName} not found in the system.");
+            }
         }
 
+        private static void AddIntelReport()
+        {
+            // Identify the reporter
+            (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
+            Person? reporter = _dal.GetPersonByFullName(reporterFirstName, reporterLastName);
+
+            // If reporter not exist, create new Reporter
+            if (reporter is null)
+                reporter = _dal.AddNewReporter(reporterFirstName, reporterLastName);
+
+            // If person type is 'Target', update Type to 'Both'
+            else if (reporter.Type == Type.Target) // What if the person type of reporter is Potential_Agent ???
+            {
+                reporter.Type = Type.Both;
+                _dal.UpdatePerson(reporter);
+            }
+
+            // Get the a valid report including target name
+            (string textReport, string targetFirstName, string? targetLastName) = ReadIntelReportFromConsole();
+
+            // Identify the target
+            Person? target = _dal.GetPersonByFullName(targetFirstName, targetLastName);
+
+            // If target not exist, create new 'Target'
+            if (target is null)
+                target = _dal.AddNewTarget(targetFirstName, targetLastName); // Fix it
+
+            // If person type of 'Target' is 'Reporter', update Type to 'Both'
+            else if (target.Type == Type.Reporter) // What if the person type of target is Potential_Agent ???
+            {
+                target.Type = Type.Both;
+                _dal.UpdatePerson(target);
+            }
+
+            if (reporter?.Id == null || target?.Id == null)
+            {
+                PrintError("Error. Cannot insert IntelReport if id of reporter/target is null.");
+                return;
+            }
+
+            PrintSection("Intelligence report saved successfully.", ConsoleColor.Green);
+            Console.WriteLine(_dal.AddIntelReport(reporter.Id.Value, target.Id.Value, textReport));
+        }
+
+        public static (string textReport, string firstName, string? lastName) ReadIntelReportFromConsole()
+        {
+            string freeTextReport;
+            string? firstName, lastName;
+            do
+            {
+                Console.WriteLine("Please enter your full intelligence report including the target name (in Capitalized Case): ");
+                freeTextReport = Console.ReadLine() ?? "";
+                (firstName, lastName) = Person.ExtractFullNameFromReport(freeTextReport);
+
+                if (string.IsNullOrWhiteSpace(firstName))
+                    PrintError("The intelligence report must include the target name.");
+            } while (string.IsNullOrWhiteSpace(firstName));
+
+            return (freeTextReport, firstName, lastName);
+        }
+        #region Menu Function
         /* Check if a string matches one of the options in the menu (0-5)*/
         private static bool IsValidMenuOption(string menuOption) =>
             int.TryParse(menuOption, out int val) && val >= 0 && val <= 5;
+
         private static void PrintSection(string message, ConsoleColor color)
         {
             Console.ForegroundColor = color;
@@ -126,6 +198,6 @@ namespace Malshinon.Entities
             Console.WriteLine("\nלחץ על מקש כלשהו להמשך...");
             Console.ReadKey();
         }
-
+        #endregion Menu Function
     }
 }
