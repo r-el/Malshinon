@@ -107,7 +107,15 @@ namespace Malshinon.Entities
         private static void FindPerson()
         {
             (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
-            Console.WriteLine(_dal.GetPersonByFullName(reporterFirstName, reporterLastName));
+            Person? person = _dal.GetPersonByFullName(reporterFirstName, reporterLastName);
+
+            if (person != null)
+                Console.WriteLine(person);
+            else
+            {
+                PrintError($"האדם {reporterFirstName} {reporterLastName} לא נמצא במערכת.");
+                PrintError($"Person {reporterFirstName} {reporterLastName} not found in the system.");
+            }
         }
 
         #region Menu Function
