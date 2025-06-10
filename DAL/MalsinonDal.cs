@@ -253,6 +253,16 @@ namespace Malshinon.DAL
             return intelReport;
         }
 
+        internal Person? AddNewTarget(string targetFirstName, string? targeLastName)
+        {
+            Person? target = GetPersonByFullName(targetFirstName, targeLastName);
+
+            // if target exist
+            if (target != null)
+                return null;
+
+            return AddPerson(new(targetFirstName, targeLastName, type: Type.Target));
+        }
         #endregion IntelReport
     }
 }
