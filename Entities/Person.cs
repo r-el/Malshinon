@@ -31,6 +31,30 @@ namespace Malshinon.Entities
             return (firstName, lastName);
         }
 
+        public static (string? firstName, string? lastName) ExtractFullNameFromReport(string? freeTextReport)
+        {
+            if (string.IsNullOrWhiteSpace(freeTextReport))
+                return (null, null);
+
+            string[] words = freeTextReport.Trim().Split();
+
+            List<string> names = [];
+            for (int i = 0; i < words.Length; i++)
+                if (char.IsUpper(words[i][0]))
+                {
+                    while (i < words.Length && char.IsUpper(words[i][0]))
+                        names.Add(words[i++]);
+                    break; // Break when we find the first name
+                }
+
+            if (names.Count < 2)
+                return ((names.Count > 0 ? names[0] : null), null);
+
+            string firstName = string.Join(" ", names[0..(names.Count - 1)]);
+            string lastName = names[^1]; // C#8+ index operator
+            return (firstName, lastName);
+        }
+
         public override string ToString()
         {
             return $"[Person] Id: {Id}, FirstName: {FirstName}, LastName: {LastName}, Type: {Type}, NumReports: {NumReports}, NumMentions: {NumMentions}, SecretCode: {SecretCode}";
