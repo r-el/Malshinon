@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS malshinon;
 -- CREATE TABLE IF NOT EXISTS people;
 CREATE TABLE IF NOT EXISTS people(
       id INT PRIMARY KEY AUTO_INCREMENT,
-      first_name VARCHAR(100),
+      first_name VARCHAR(100) NOT NULL,
       last_name VARCHAR(100),
       secret_code VARCHAR(100) UNIQUE,
       type ENUM("reporter", "target", "both", "potential_agent"),
