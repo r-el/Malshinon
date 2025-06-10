@@ -84,9 +84,8 @@ namespace Malshinon.DAL
             {
                 OpenConnection();
                 string query = @"INSERT INTO people
-                    (first_name, last_name, secret_code, type, num_reports, num_mentions)
-                VALUES(@fname, @lname, @secret_code, @type, @num_reports, @num_mentions);
-                ";
+                            (first_name, last_name, secret_code, type, num_reports, num_mentions)
+                            VALUES (@fname, @lname, @secret_code, @type, @num_reports, @num_mentions);";
 
                 MySqlCommand cmd = new(query, _conn);
 
@@ -113,6 +112,17 @@ namespace Malshinon.DAL
             }
 
             return person;
+        }
+
+        public Person? AddNewReporter(string firstName, string? lastName) // TODO: maybe to move to controller file
+        {
+            Person? reporter = GetPersonByFullName(firstName, lastName);
+
+            // if reporter exist
+            if (reporter != null)
+                return null;
+
+            return AddPerson(new(firstName, lastName));
         }
 
         public Person? GetPersonByFullName(string firstName, string? lastName)
