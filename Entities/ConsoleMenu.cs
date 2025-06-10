@@ -67,7 +67,7 @@ namespace Malshinon.Entities
                     Console.WriteLine(string.Join("\n", _dal.FetchPeople()));
                     break;
                 case 4:
-                    PrintSection("[הוסף דוח מודיעין חדש (Add New Intelligence Report) - טרם מומש]", ConsoleColor.Green);
+                    AddIntelReport();
                     break;
                 case 5:
                     PrintSection("[הצג התראות (View Alerts) - טרם מומש]", ConsoleColor.Green);
@@ -116,6 +116,50 @@ namespace Malshinon.Entities
                 PrintError($"האדם {reporterFirstName} {reporterLastName} לא נמצא במערכת.");
                 PrintError($"Person {reporterFirstName} {reporterLastName} not found in the system.");
             }
+        }
+
+        private static void AddIntelReport()
+        {
+            // Identify the reporter
+            (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
+            Person? reporter = _dal.GetPersonByFullName(reporterFirstName, reporterLastName);
+
+            // If reporter not exist, create new Reporter
+            if (reporter is null)
+                reporter = _dal.AddNewReporter(reporterFirstName, reporterLastName);
+
+            // If person type is 'Target', update Type to 'Both'
+            else if (reporter.Type == Type.Target) // What if the person type of reporter is Potential_Agent ???
+            {
+                reporter.Type = Type.Both;
+                _dal.UpdatePerson(reporter);
+            }
+
+            // Get the a valid report including target name
+            (string textReport, string targetFirstName, string? targetLastName) = ReadIntelReportFromConsole();
+
+            // Identify the target
+            Person? target = _dal.GetPersonByFullName(targetFirstName, targetLastName);
+
+            // If target not exist, create new 'Target'
+            if (target is null)
+                target = _dal.AddNewTarget(targetFirstName, targetLastName); // Fix it
+
+            // If person type of 'Target' is 'Reporter', update Type to 'Both'
+            else if (target.Type == Type.Reporter) // What if the person type of target is Potential_Agent ???
+            {
+                target.Type = Type.Both;
+                _dal.UpdatePerson(target);
+            }
+
+            if (reporter?.Id == null || target?.Id == null)
+            {
+                PrintError("Error. Cannot insert IntelReport if id of reporter/target is null.");
+                return;
+            }
+
+            PrintSection("Intelligence report saved successfully.", ConsoleColor.Green);
+            Console.WriteLine(_dal.AddIntelReport(reporter.Id.Value, target.Id.Value, textReport));
         }
 
         public static (string textReport, string firstName, string? lastName) ReadIntelReportFromConsole()
