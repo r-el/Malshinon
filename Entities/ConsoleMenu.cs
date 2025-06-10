@@ -118,6 +118,22 @@ namespace Malshinon.Entities
             }
         }
 
+        public static (string textReport, string firstName, string? lastName) ReadIntelReportFromConsole()
+        {
+            string freeTextReport;
+            string? firstName, lastName;
+            do
+            {
+                Console.WriteLine("Please enter your full intelligence report including the target name (in Capitalized Case): ");
+                freeTextReport = Console.ReadLine() ?? "";
+                (firstName, lastName) = Person.ExtractFullNameFromReport(freeTextReport);
+
+                if (string.IsNullOrWhiteSpace(firstName))
+                    PrintError("The intelligence report must include the target name.");
+            } while (string.IsNullOrWhiteSpace(firstName));
+
+            return (freeTextReport, firstName, lastName);
+        }
         #region Menu Function
         /* Check if a string matches one of the options in the menu (0-5)*/
         private static bool IsValidMenuOption(string menuOption) =>
