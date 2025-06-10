@@ -1,3 +1,4 @@
+using System.Data;
 using Malshinon.Entities;
 using MySql.Data.MySqlClient;
 using Type = Malshinon.Enums.Type;
@@ -49,7 +50,7 @@ namespace Malshinon.DAL
                 {
                     Person person = new(
                         reader.GetString("first_name"),
-                        reader.GetString("last_name"),
+                        reader.IsDBNull("last_name") ? null : reader.GetString("last_name"),
                         reader.GetInt32("id"),
                         reader.GetGuid("secret_code"),
                         Enum.Parse<Type>(reader.GetString("type"), true),
@@ -90,7 +91,7 @@ namespace Malshinon.DAL
                 MySqlCommand cmd = new(query, _conn);
 
                 cmd.Parameters.AddWithValue("@fname", _person.FirstName);
-                cmd.Parameters.AddWithValue("@lname", _person.LastName);
+                cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
                 cmd.Parameters.AddWithValue("@secret_code", _person.SecretCode);
                 cmd.Parameters.AddWithValue("@type", _person.Type.ToString());
                 cmd.Parameters.AddWithValue("@num_reports", _person.NumReports);
@@ -134,7 +135,7 @@ namespace Malshinon.DAL
 
                 cmd.Parameters.AddWithValue("@id", person.Id);
                 cmd.Parameters.AddWithValue("@fname", person.FirstName);
-                cmd.Parameters.AddWithValue("@lname", person.LastName);
+                cmd.Parameters.AddWithValue("@lname", person.LastName ?? "");
                 cmd.Parameters.AddWithValue("@secret_code", person.SecretCode);
                 cmd.Parameters.AddWithValue("@type", person.Type.ToString());
                 cmd.Parameters.AddWithValue("@num_reports", person.NumReports);
@@ -179,14 +180,14 @@ namespace Malshinon.DAL
 
                 MySqlCommand cmd = new(query, _conn);
                 cmd.Parameters.AddWithValue("@fname", firstName);
-                cmd.Parameters.AddWithValue("@lname", lastName);
+                cmd.Parameters.AddWithValue("@lname", lastName ?? "");
 
                 reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
                     person = new(
                         reader.GetString("first_name"),
-                        reader.GetString("last_name"),
+                        reader.IsDBNull("last_name") ? null : reader.GetString("last_name"),
                         reader.GetInt32("id"),
                         reader.GetGuid("secret_code"),
                         Enum.Parse<Type>(reader.GetString("type"), true),
@@ -253,7 +254,7 @@ namespace Malshinon.DAL
             return intelReport;
         }
 
-        internal Person? AddNewTarget(string targetFirstName, string? targeLastName)
+        public Person? AddNewTarget(string targetFirstName, string? targeLastName)
         {
             Person? target = GetPersonByFullName(targetFirstName, targeLastName);
 
