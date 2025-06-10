@@ -1,5 +1,6 @@
 using System.Text;
 using Malshinon.DAL;
+using Type = Malshinon.Enums.Type;
 
 namespace Malshinon.Entities
 {
@@ -83,34 +84,37 @@ namespace Malshinon.Entities
 
         private static void AddNewPerson()
         {
-            bool personAdded;
+            Person? person;
+            string firstName;
+            string? lastName;
+
             do
             {
-                string firstName, lastName;
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
-                personAdded = _dal.AddPerson(new Person(null, firstName, lastName, null));
+                person = _dal.GetPersonByFullName(firstName, lastName);
+                if (person is null)
+                    break;
 
-                if (!personAdded)
-                {
-                    PrintError($"שגיאה: האדם {firstName} {lastName} כבר קיים במערכת!");
-                    PrintError($"Error: Person {firstName} {lastName} already exists in the system!");
-                    Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
-                }
-            } while (!personAdded);
+                PrintError($"שגיאה: האדם {person.FirstName} {person.LastName} כבר קיים במערכת! (id={person.Id})");
+                PrintError($"Error: Person {person.FirstName} {person.LastName} already exists in the system! (id={person.Id})");
+                Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
+            } while (true);
 
-            PrintSection("האדם נוסף בהצלחה למערכת! (Person added successfully!)", ConsoleColor.Green);
+            person = _dal.AddPerson(new Person(firstName, lastName));
+            PrintSection($"האדם נוסף בהצלחה למערכת! (Person added successfully!) (id={person?.Id})", ConsoleColor.Green);
         }
 
         private static void FindPerson()
         {
-            string firstName, lastName;
-            (firstName, lastName) = Person.ReadFullNameFromConsole();
-            Console.WriteLine(_dal.GetPersonByFullName(firstName, lastName));
+            (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
+            Console.WriteLine(_dal.GetPersonByFullName(reporterFirstName, reporterLastName));
         }
 
+        #region Menu Function
         /* Check if a string matches one of the options in the menu (0-5)*/
         private static bool IsValidMenuOption(string menuOption) =>
             int.TryParse(menuOption, out int val) && val >= 0 && val <= 5;
+
         private static void PrintSection(string message, ConsoleColor color)
         {
             Console.ForegroundColor = color;
@@ -126,6 +130,6 @@ namespace Malshinon.Entities
             Console.WriteLine("\nלחץ על מקש כלשהו להמשך...");
             Console.ReadKey();
         }
-
+        #endregion Menu Function
     }
 }
