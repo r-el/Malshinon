@@ -114,6 +114,49 @@ namespace Malshinon.DAL
             return person;
         }
 
+        public bool UpdatePerson(Person person)
+        {
+            MySqlDataReader? reader = null;
+            bool isUpdated = false;
+            try
+            {
+                OpenConnection();
+                string query = @"UPDATE people SET
+                    first_name = @fname,
+                    last_name = @lname,
+                    secret_code = @secret_code,
+                    type = @type,
+                    num_reports = @num_reports,
+                    num_mentions = @num_mentions
+                    WHERE id = @id";
+
+                MySqlCommand cmd = new(query, _conn);
+
+                cmd.Parameters.AddWithValue("@id", person.Id);
+                cmd.Parameters.AddWithValue("@fname", person.FirstName);
+                cmd.Parameters.AddWithValue("@lname", person.LastName);
+                cmd.Parameters.AddWithValue("@secret_code", person.SecretCode);
+                cmd.Parameters.AddWithValue("@type", person.Type.ToString());
+                cmd.Parameters.AddWithValue("@num_reports", person.NumReports);
+                cmd.Parameters.AddWithValue("@num_mentions", person.NumMentions);
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+                isUpdated = rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while updating person {person.Id}: {ex.Message}");
+            }
+            finally
+            {
+                if (reader != null && !reader.IsClosed)
+                    reader.Close();
+                CloseConnection();
+            }
+
+            return isUpdated;
+        }
+
         public Person? AddNewReporter(string firstName, string? lastName) // TODO: maybe to move to controller file
         {
             Person? reporter = GetPersonByFullName(firstName, lastName);
