@@ -139,7 +139,6 @@ namespace Malshinon.DAL
 
                 reader = cmd.ExecuteReader();
                 if (reader.Read())
-                {
                     person = new(
                         reader.GetString("first_name"),
                         reader.IsDBNull("last_name") ? null : reader.GetString("last_name"),
@@ -149,20 +148,14 @@ namespace Malshinon.DAL
                         reader.GetInt32("num_reports"),
                         reader.GetInt32("num_mentions")
                     );
-                }
-                CloseConnection();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while getting person {firstName} {lastName}: {ex.Message}");
-            }
+            catch (Exception ex) { Console.WriteLine($"Error while getting person {firstName} {lastName}: {ex.Message}"); }
             finally
             {
                 if (reader != null && !reader.IsClosed)
                     reader.Close();
                 CloseConnection();
             }
-
             return person;
         }
 
