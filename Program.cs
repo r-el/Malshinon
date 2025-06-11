@@ -1,3 +1,3 @@
-﻿using Malshinon.Entities;
+﻿using Malshinon.UI;
 
 ConsoleMenu.Run();
