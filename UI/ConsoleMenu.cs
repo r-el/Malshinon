@@ -132,8 +132,10 @@ namespace Malshinon.UI
             // If person type is 'Target', update Type to 'Both'
             else if (reporter.Type == Type.Target) // What if the person type of reporter is Potential_Agent ???
             {
+                Console.WriteLine($"[LOG] STATUS CHANGE: Converting Target to Reporter+Target (Both) - {reporter.FirstName} (ID={reporter.Id})");
                 reporter.Type = Type.Both;
                 _dal.UpdatePerson(reporter);
+                Console.WriteLine($"[LOG] Successfully updated {reporter.FullName} status to Both");
             }
 
             // Get the a valid report including target name
@@ -149,8 +151,10 @@ namespace Malshinon.UI
             // If person type of 'Target' is 'Reporter', update Type to 'Both'
             else if (target.Type == Type.Reporter) // What if the person type of target is Potential_Agent ???
             {
+                Console.WriteLine($"[LOG] STATUS CHANGE: Converting Reporter to Target+Reporter (Both) - {target.FullName} (ID={target.Id})");
                 target.Type = Type.Both;
                 _dal.UpdatePerson(target);
+                Console.WriteLine($"[LOG] Successfully updated {target.FirstName} {target.LastName} status to Both");
             }
 
             if (reporter != null && target != null)
