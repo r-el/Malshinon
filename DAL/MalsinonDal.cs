@@ -214,20 +214,17 @@ namespace Malshinon.DAL
         public bool PersonExists(string firstName, string? lastName) => GetPersonByFullName(firstName, lastName) != null;
 
         #region IntelReport
-        public IntelReport? AddIntelReport(int reporterId, int targetId, string text)
+        public IntelReport? AddIntelReport(IntelReport _intelReport)
         {
-            MySqlDataReader? reader = null;
-            IntelReport? intelReport = null;
             try
             {
                 OpenConnection();
-                string query = @"INSERT INTO intel_reports (reporter_id, target_id, text) 
-                               VALUES (@reporter_id, @target_id, @text)";
+                string query = @"INSERT INTO intel_reports (reporter_id, target_id, text) VALUES (@reporter_id, @target_id, @text)";
 
                 MySqlCommand cmd = new(query, _conn);
-                cmd.Parameters.AddWithValue("@reporter_id", reporterId);
-                cmd.Parameters.AddWithValue("@target_id", targetId);
-                cmd.Parameters.AddWithValue("@text", text);
+                cmd.Parameters.AddWithValue("@reporter_id", _intelReport.Reporter.Id);
+                cmd.Parameters.AddWithValue("@target_id", _intelReport.Target.Id);
+                cmd.Parameters.AddWithValue("@text", _intelReport.Text);
 
                 cmd.ExecuteNonQuery();
 
@@ -237,21 +234,12 @@ namespace Malshinon.DAL
 
                 CloseConnection();
 
-                intelReport = new IntelReport(reporterId, targetId, text, lastId);
+                _intelReport.Id = lastId;
             }
+            catch (Exception ex) { Console.WriteLine($"Error while adding intel report: {ex.Message}"); }
+            finally { CloseConnection(); }
 
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while adding intel report: {ex.Message}");
-            }
-            finally
-            {
-                if (reader != null && !reader.IsClosed)
-                    reader.Close();
-                CloseConnection();
-            }
-
-            return intelReport;
+            return _intelReport;
         }
 
         public Person? AddNewTarget(string targetFirstName, string? targeLastName)
