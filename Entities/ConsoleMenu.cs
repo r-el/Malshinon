@@ -67,7 +67,7 @@ namespace Malshinon.Entities
                     Console.WriteLine(string.Join("\n", _dal.FetchPeople()));
                     break;
                 case 4:
-                    AddIntelReport();
+                    AddNewIntelReport();
                     break;
                 case 5:
                     PrintSection("[הצג התראות (View Alerts) - טרם מומש]", ConsoleColor.Green);
@@ -118,7 +118,7 @@ namespace Malshinon.Entities
             }
         }
 
-        private static void AddIntelReport()
+        private static void AddNewIntelReport()
         {
             // Identify the reporter
             (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
@@ -152,14 +152,13 @@ namespace Malshinon.Entities
                 _dal.UpdatePerson(target);
             }
 
-            if (reporter?.Id == null || target?.Id == null)
+            if (reporter != null && target != null)
             {
-                PrintError("Error. Cannot insert IntelReport if id of reporter/target is null.");
-                return;
+                IntelReport intelReport = new(reporter, target, textReport);
+                Console.WriteLine(_dal.AddIntelReport(intelReport));
+                PrintSection("Intelligence report saved successfully.", ConsoleColor.Green);
             }
-
-            PrintSection("Intelligence report saved successfully.", ConsoleColor.Green);
-            Console.WriteLine(_dal.AddIntelReport(reporter.Id.Value, target.Id.Value, textReport));
+            else PrintError("Error. Cannot insert IntelReport if Reporter or Target is null.");
         }
 
         public static (string textReport, string firstName, string? lastName) ReadIntelReportFromConsole()

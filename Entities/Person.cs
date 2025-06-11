@@ -12,7 +12,7 @@ namespace Malshinon.Entities
         public int NumReports { get; set; } = numReports;
         public int NumMentions { get; set; } = numMentions;
 
-        public string FullName => FirstName + LastName ?? "";
+        public string FullName => FirstName + " " + LastName ?? "";
 
         public static (string firstName, string? lastName) ReadFullNameFromConsole()
         {
