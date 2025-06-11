@@ -307,13 +307,15 @@ namespace Malshinon.DAL
                 if (_intelReport.Reporter.NumReports >= 10)
                     if (GetReporterAverageTextLength(_intelReport.Reporter.Id) >= 100)
                     {
+                        Console.WriteLine($"[LOG] STATUS CHANGE: Promoting reporter to Potential Agent - {_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}) has {_intelReport.Reporter.NumReports} reports with avg length {GetReporterAverageTextLength(_intelReport.Reporter.Id):F2} chars");
                         _intelReport.Reporter.Type = Type.Potential_Agent;
                         UpdatePerson(_intelReport.Reporter);
+                        Console.WriteLine($"[LOG] Successfully promoted {_intelReport.Reporter.FullName} to Potential_Agent status");
                     }
 
                 // Check if target should trigger threat alert
                 if (_intelReport.Target.NumMentions >= 20)
-                    Console.WriteLine($"POTENTIAL THREAT ALERT: Target {_intelReport.Target.FirstName} {_intelReport.Target.LastName} has {_intelReport.Target.NumMentions} mentions");
+                    Console.WriteLine($"[LOG] STATUS CHANGE: POTENTIAL THREAT ALERT - Target {_intelReport.Target.FullName} (ID={_intelReport.Target.Id}) has {_intelReport.Target.NumMentions} mentions");
             }
             catch (Exception ex) { Console.WriteLine($"[LOG] Error while submitting report: {ex.Message}"); }
             finally { CloseConnection(); }
