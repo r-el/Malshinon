@@ -271,6 +271,8 @@ namespace Malshinon.DAL
         #region IntelReport Section
         public IntelReport? AddIntelReport(IntelReport _intelReport)
         {
+            Console.WriteLine($"[LOG] Starting report submission: Reporter={_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}), Target={_intelReport.Target.FullName} (ID={_intelReport.Target.Id})");
+
             try
             {
                 OpenConnection();
@@ -289,13 +291,17 @@ namespace Malshinon.DAL
 
                 _intelReport.Id = lastId;
 
+                Console.WriteLine($"[LOG] Report successfully submitted with ID={lastId}");
+
                 // Increace numReaport in Reporter
                 _intelReport.Reporter.NumReports += 1;
                 UpdatePerson(_intelReport.Reporter);
+                Console.WriteLine($"[LOG] Updated reporter stats: {_intelReport.Reporter.FullName} now has {_intelReport.Reporter.NumReports} reports");
 
                 // Increace numMentions in Target
                 _intelReport.Target.NumMentions += 1;
                 UpdatePerson(_intelReport.Target);
+                Console.WriteLine($"[LOG] Updated target stats: {_intelReport.Target.FullName} now has {_intelReport.Target.NumMentions} mentions");
 
                 // Check if reporter should be promoted to potential agent
                 if (_intelReport.Reporter.NumReports >= 10)
@@ -309,7 +315,7 @@ namespace Malshinon.DAL
                 if (_intelReport.Target.NumMentions >= 20)
                     Console.WriteLine($"POTENTIAL THREAT ALERT: Target {_intelReport.Target.FirstName} {_intelReport.Target.LastName} has {_intelReport.Target.NumMentions} mentions");
             }
-            catch (Exception ex) { Console.WriteLine($"Error while adding intel report: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"[LOG] Error while submitting report: {ex.Message}"); }
             finally { CloseConnection(); }
 
             return _intelReport;
