@@ -50,11 +50,7 @@ namespace Malshinon.DAL
             try
             {
                 OpenConnection();
-                string query = @"INSERT INTO people
-                    (first_name, last_name, secret_code, type, num_reports, num_mentions)
-                    VALUES (@fname, @lname, @secret_code, @type, @num_reports, @num_mentions);";
-
-                MySqlCommand cmd = new(query, _conn);
+                MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
 
                 cmd.Parameters.AddWithValue("@fname", _person.FirstName);
                 cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
@@ -93,7 +89,7 @@ namespace Malshinon.DAL
         #endregion CREATE Person Section
 
         #region READ Person Section
-        public List<Person> FetchPeople(string query = "SELECT * FROM people")
+        public List<Person> FetchPeople(string query = SqlQueries.SelectAllPeople)
         {
             List<Person> peopleList = [];
             MySqlDataReader? reader = null;
@@ -137,11 +133,9 @@ namespace Malshinon.DAL
             try
             {
                 OpenConnection();
-                string query = @"SELECT * FROM people WHERE first_name = @fname AND last_name = @lname";
-
-                MySqlCommand cmd = new(query, _conn);
-                cmd.Parameters.AddWithValue("@fname", firstName);
-                cmd.Parameters.AddWithValue("@lname", lastName ?? "");
+                MySqlCommand cmd = new(SqlQueries.SelectPersonByFullName, _conn);
+                cmd.Parameters.AddWithValue("@firstName", firstName);
+                cmd.Parameters.AddWithValue("@lastName", lastName ?? "");
 
                 reader = cmd.ExecuteReader();
                 if (reader.Read())
@@ -183,24 +177,15 @@ namespace Malshinon.DAL
             try
             {
                 OpenConnection();
-                string query = @"UPDATE people SET
-                    first_name = @fname,
-                    last_name = @lname,
-                    secret_code = @secret_code,
-                    type = @type,
-                    num_reports = @num_reports,
-                    num_mentions = @num_mentions
-                    WHERE id = @id";
-
-                MySqlCommand cmd = new(query, _conn);
+                MySqlCommand cmd = new(SqlQueries.UpdatePerson, _conn);
 
                 cmd.Parameters.AddWithValue("@id", person.Id);
-                cmd.Parameters.AddWithValue("@fname", person.FirstName);
-                cmd.Parameters.AddWithValue("@lname", person.LastName ?? "");
-                cmd.Parameters.AddWithValue("@secret_code", person.SecretCode);
+                cmd.Parameters.AddWithValue("@firstName", person.FirstName);
+                cmd.Parameters.AddWithValue("@lastName", person.LastName ?? "");
+                cmd.Parameters.AddWithValue("@secterCode", person.SecretCode);
                 cmd.Parameters.AddWithValue("@type", person.Type.ToString());
-                cmd.Parameters.AddWithValue("@num_reports", person.NumReports);
-                cmd.Parameters.AddWithValue("@num_mentions", person.NumMentions);
+                cmd.Parameters.AddWithValue("@numReports", person.NumReports);
+                cmd.Parameters.AddWithValue("@numMentions", person.NumMentions);
 
                 int rowsAffected = cmd.ExecuteNonQuery();
                 isUpdated = rowsAffected > 0;
@@ -221,7 +206,7 @@ namespace Malshinon.DAL
         #endregion UPDATE Person Section
 
         #region DELETE Person Section
-        // Add DELETE methods here if needed in the future
+        // DELETE methods if needed..
         #endregion DELETE Person Section
 
         #region IntelReport Section
@@ -230,17 +215,15 @@ namespace Malshinon.DAL
             try
             {
                 OpenConnection();
-                string query = @"INSERT INTO intel_reports (reporter_id, target_id, text) VALUES (@reporter_id, @target_id, @text)";
-
-                MySqlCommand cmd = new(query, _conn);
-                cmd.Parameters.AddWithValue("@reporter_id", _intelReport.Reporter.Id);
-                cmd.Parameters.AddWithValue("@target_id", _intelReport.Target.Id);
+                MySqlCommand cmd = new(SqlQueries.InsertIntelReport, _conn);
+                cmd.Parameters.AddWithValue("@reporterId", _intelReport.Reporter.Id);
+                cmd.Parameters.AddWithValue("@targetId", _intelReport.Target.Id);
                 cmd.Parameters.AddWithValue("@text", _intelReport.Text);
 
                 cmd.ExecuteNonQuery();
 
                 // Get the last inserted ID
-                cmd = new("SELECT LAST_INSERT_ID()", _conn);
+                cmd = new(SqlQueries.GetLastInsertId, _conn);
                 int lastId = Convert.ToInt32(cmd.ExecuteScalar());
 
                 CloseConnection();
