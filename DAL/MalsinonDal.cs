@@ -159,6 +159,41 @@ namespace Malshinon.DAL
             return person;
         }
 
+        public Person? GetPersonById(int personId)
+        {
+            MySqlDataReader? reader = null;
+            Person? person = null;
+            try
+            {
+                if (personId <= 0)
+                    throw new ArgumentException("Person ID must be positive", nameof(personId));
+
+                OpenConnection();
+                MySqlCommand cmd = new(SqlQueries.SelectPersonById, _conn);
+                cmd.Parameters.AddWithValue("@id", personId);
+
+                reader = cmd.ExecuteReader();
+                if (reader.Read())
+                    person = new(
+                        reader.GetString("first_name"),
+                        reader.IsDBNull("last_name") ? null : reader.GetString("last_name"),
+                        reader.GetInt32("id"),
+                        reader.GetGuid("secret_code"),
+                        Enum.Parse<Type>(reader.GetString("type"), true),
+                        reader.GetInt32("num_reports"),
+                        reader.GetInt32("num_mentions")
+                    );
+            }
+            catch (Exception ex) { Console.WriteLine($"Error while getting person by ID {personId}: {ex.Message}"); }
+            finally
+            {
+                if (reader != null && !reader.IsClosed)
+                    reader.Close();
+                CloseConnection();
+            }
+            return person;
+        }
+
         public bool PersonExists(string firstName, string? lastName) => GetPersonByFullName(firstName, lastName) != null;
         #endregion READ Person Section
 

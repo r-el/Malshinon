@@ -12,6 +12,10 @@ namespace Malshinon.DAL
             SELECT * FROM people 
             WHERE first_name = @firstName AND last_name = @lastName";
 
+        public const string SelectPersonById = @"
+            SELECT * FROM people 
+            WHERE id = @id";
+
         public const string UpdatePerson = @"
             UPDATE people SET
                 first_name = @firstName,
