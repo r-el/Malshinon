@@ -7,9 +7,19 @@ namespace Malshinon.DAL
 {
     public class MalshinonDal
     {
+        #region Fields and Constructor
         private readonly string _connStr = "server=localhost;port=3307;user=root;password=;database=malshinon";
         private MySqlConnection? _conn;
 
+        public MalshinonDal()
+        {
+            try { OpenConnection(); }
+            catch (MySqlException ex) { Console.WriteLine($"MySQL Error: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"General Error: {ex.Message}"); }
+        }
+        #endregion Fields and Constructor
+
+        #region Connection Management
         public MySqlConnection OpenConnection()
         {
             _conn ??= new MySqlConnection(_connStr);
@@ -28,14 +38,61 @@ namespace Malshinon.DAL
                 _conn = null;
             }
         }
+        #endregion Connection Management
 
-        public MalshinonDal()
+        #region CREATE Person Section        
+        public Person? AddPerson(Person _person)
         {
-            try { OpenConnection(); }
-            catch (MySqlException ex) { Console.WriteLine($"MySQL Error: {ex.Message}"); }
-            catch (Exception ex) { Console.WriteLine($"General Error: {ex.Message}"); }
+            // If person exists return null
+            Person? person = GetPersonByFullName(_person.FirstName, _person.LastName);
+            if (person != null) return null;
+
+            try
+            {
+                OpenConnection();
+                string query = @"INSERT INTO people
+                    (first_name, last_name, secret_code, type, num_reports, num_mentions)
+                    VALUES (@fname, @lname, @secret_code, @type, @num_reports, @num_mentions);";
+
+                MySqlCommand cmd = new(query, _conn);
+
+                cmd.Parameters.AddWithValue("@fname", _person.FirstName);
+                cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
+                cmd.Parameters.AddWithValue("@secret_code", _person.SecretCode);
+                cmd.Parameters.AddWithValue("@type", _person.Type.ToString());
+                cmd.Parameters.AddWithValue("@num_reports", _person.NumReports);
+                cmd.Parameters.AddWithValue("@num_mentions", _person.NumMentions);
+                cmd.ExecuteNonQuery();
+
+                CloseConnection();
+                person = GetPersonByFullName(_person.FirstName, _person.LastName);
+            }
+            catch (Exception ex) { Console.WriteLine($"Error while adding person {_person.Id}: {ex.Message}"); }
+            finally { CloseConnection(); }
+
+            return person;
         }
 
+        // reutrn new reporter if not exist
+        public Person? AddNewReporter(string firstName, string? lastName) // TODO: maybe to move to controller file
+        {
+            Person? reporter = GetPersonByFullName(firstName, lastName);
+
+            // reutrn bew reporter if not exist
+            return (reporter != null) ? null : AddPerson(new(firstName, lastName));
+        }
+
+        // return new target if not exist
+        public Person? AddNewTarget(string targetFirstName, string? targetLastName)
+        {
+            Person? target = GetPersonByFullName(targetFirstName, targetLastName);
+
+            // return new target if not exist
+            return (target != null) ? null : AddPerson(new(targetFirstName, targetLastName, type: Type.Target));
+        }
+        #endregion CREATE Person Section
+
+        #region READ Person Section
         public List<Person> FetchPeople(string query = "SELECT * FROM people")
         {
             List<Person> peopleList = [];
@@ -71,102 +128,6 @@ namespace Malshinon.DAL
                 CloseConnection();
             }
             return peopleList;
-        }
-
-        public Person? AddPerson(Person _person)
-        {
-            // Check if person exists return null
-            Person? person = GetPersonByFullName(_person.FirstName, _person.LastName);
-            if (person != null)
-                return null;
-
-            MySqlDataReader? reader = null;
-            try
-            {
-                OpenConnection();
-                string query = @"INSERT INTO people
-                            (first_name, last_name, secret_code, type, num_reports, num_mentions)
-                            VALUES (@fname, @lname, @secret_code, @type, @num_reports, @num_mentions);";
-
-                MySqlCommand cmd = new(query, _conn);
-
-                cmd.Parameters.AddWithValue("@fname", _person.FirstName);
-                cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
-                cmd.Parameters.AddWithValue("@secret_code", _person.SecretCode);
-                cmd.Parameters.AddWithValue("@type", _person.Type.ToString());
-                cmd.Parameters.AddWithValue("@num_reports", _person.NumReports);
-                cmd.Parameters.AddWithValue("@num_mentions", _person.NumMentions);
-                cmd.ExecuteNonQuery();
-
-                CloseConnection();
-                person = GetPersonByFullName(_person.FirstName, _person.LastName);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while adding person {_person.Id}: {ex.Message}");
-            }
-            finally
-            {
-                if (reader != null && !reader.IsClosed)
-                    reader.Close();
-                CloseConnection();
-            }
-
-            return person;
-        }
-
-        public bool UpdatePerson(Person person)
-        {
-            MySqlDataReader? reader = null;
-            bool isUpdated = false;
-            try
-            {
-                OpenConnection();
-                string query = @"UPDATE people SET
-                    first_name = @fname,
-                    last_name = @lname,
-                    secret_code = @secret_code,
-                    type = @type,
-                    num_reports = @num_reports,
-                    num_mentions = @num_mentions
-                    WHERE id = @id";
-
-                MySqlCommand cmd = new(query, _conn);
-
-                cmd.Parameters.AddWithValue("@id", person.Id);
-                cmd.Parameters.AddWithValue("@fname", person.FirstName);
-                cmd.Parameters.AddWithValue("@lname", person.LastName ?? "");
-                cmd.Parameters.AddWithValue("@secret_code", person.SecretCode);
-                cmd.Parameters.AddWithValue("@type", person.Type.ToString());
-                cmd.Parameters.AddWithValue("@num_reports", person.NumReports);
-                cmd.Parameters.AddWithValue("@num_mentions", person.NumMentions);
-
-                int rowsAffected = cmd.ExecuteNonQuery();
-                isUpdated = rowsAffected > 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error while updating person {person.Id}: {ex.Message}");
-            }
-            finally
-            {
-                if (reader != null && !reader.IsClosed)
-                    reader.Close();
-                CloseConnection();
-            }
-
-            return isUpdated;
-        }
-
-        public Person? AddNewReporter(string firstName, string? lastName) // TODO: maybe to move to controller file
-        {
-            Person? reporter = GetPersonByFullName(firstName, lastName);
-
-            // if reporter exist
-            if (reporter != null)
-                return null;
-
-            return AddPerson(new(firstName, lastName));
         }
 
         public Person? GetPersonByFullName(string firstName, string? lastName)
@@ -212,8 +173,58 @@ namespace Malshinon.DAL
         }
 
         public bool PersonExists(string firstName, string? lastName) => GetPersonByFullName(firstName, lastName) != null;
+        #endregion READ Person Section
 
-        #region IntelReport
+        #region UPDATE Person Section
+        public bool UpdatePerson(Person person)
+        {
+            MySqlDataReader? reader = null;
+            bool isUpdated = false;
+            try
+            {
+                OpenConnection();
+                string query = @"UPDATE people SET
+                    first_name = @fname,
+                    last_name = @lname,
+                    secret_code = @secret_code,
+                    type = @type,
+                    num_reports = @num_reports,
+                    num_mentions = @num_mentions
+                    WHERE id = @id";
+
+                MySqlCommand cmd = new(query, _conn);
+
+                cmd.Parameters.AddWithValue("@id", person.Id);
+                cmd.Parameters.AddWithValue("@fname", person.FirstName);
+                cmd.Parameters.AddWithValue("@lname", person.LastName ?? "");
+                cmd.Parameters.AddWithValue("@secret_code", person.SecretCode);
+                cmd.Parameters.AddWithValue("@type", person.Type.ToString());
+                cmd.Parameters.AddWithValue("@num_reports", person.NumReports);
+                cmd.Parameters.AddWithValue("@num_mentions", person.NumMentions);
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+                isUpdated = rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while updating person {person.Id}: {ex.Message}");
+            }
+            finally
+            {
+                if (reader != null && !reader.IsClosed)
+                    reader.Close();
+                CloseConnection();
+            }
+
+            return isUpdated;
+        }
+        #endregion UPDATE Person Section
+
+        #region DELETE Person Section
+        // Add DELETE methods here if needed in the future
+        #endregion DELETE Person Section
+
+        #region IntelReport Section
         public IntelReport? AddIntelReport(IntelReport _intelReport)
         {
             try
@@ -241,17 +252,6 @@ namespace Malshinon.DAL
 
             return _intelReport;
         }
-
-        public Person? AddNewTarget(string targetFirstName, string? targeLastName)
-        {
-            Person? target = GetPersonByFullName(targetFirstName, targeLastName);
-
-            // if target exist
-            if (target != null)
-                return null;
-
-            return AddPerson(new(targetFirstName, targeLastName, type: Type.Target));
-        }
-        #endregion IntelReport
+        #endregion IntelReport Section
     }
 }
