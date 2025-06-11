@@ -45,10 +45,16 @@ namespace Malshinon.DAL
         {
             // If person exists return null
             Person? person = GetPersonByFullName(_person.FirstName, _person.LastName);
-            if (person != null) return null;
+            if (person != null)
+            {
+                Console.WriteLine($"[LOG] Person already exists: {_person.FirstName} {_person.LastName}");
+                return null;
+            }
 
             try
             {
+                Console.WriteLine($"[LOG] Creating new person: {_person.FirstName} {_person.LastName} as {_person.Type}");
+
                 OpenConnection();
                 MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
 
@@ -62,6 +68,8 @@ namespace Malshinon.DAL
 
                 CloseConnection();
                 person = GetPersonByFullName(_person.FirstName, _person.LastName);
+
+                if (person != null) Console.WriteLine($"[LOG] Successfully created new person: ID={person.Id}, Name={person.FirstName} {person.LastName}, Type={person.Type}");
             }
             catch (Exception ex) { Console.WriteLine($"Error while adding person {_person.Id}: {ex.Message}"); }
             finally { CloseConnection(); }
