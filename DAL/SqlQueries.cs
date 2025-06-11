@@ -31,5 +31,10 @@ namespace Malshinon.DAL
             VALUES (@reporterId, @targetId, @text)";
 
         public const string GetLastInsertId = "SELECT LAST_INSERT_ID()";
+
+        public const string GetReporterAverageTextLength = @"
+            SELECT AVG(LENGTH(text)) as average_length 
+            FROM intel_reports 
+            WHERE reporter_id = @reporterId";
     }
 }
