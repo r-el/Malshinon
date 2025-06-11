@@ -233,6 +233,29 @@ namespace Malshinon.DAL
         }
         #endregion UPDATE Person Section
 
+        #region Helper Methods
+        private double GetReporterAverageTextLength(int? reporterId)
+        {
+            if (reporterId == null || reporterId <= 0) return 0;
+
+            double averageLength = 0;
+            try
+            {
+                OpenConnection();
+                MySqlCommand cmd = new(SqlQueries.GetReporterAverageTextLength, _conn);
+                cmd.Parameters.AddWithValue("@reporterId", reporterId.Value);
+
+                var result = cmd.ExecuteScalar();
+                if (result != null && result != DBNull.Value)
+                    averageLength = Convert.ToDouble(result);
+            }
+            catch (Exception ex) { Console.WriteLine($"Error while getting average text length for reporter {reporterId}: {ex.Message}"); }
+            finally { CloseConnection(); }
+
+            return averageLength;
+        }
+        #endregion Helper Methods
+
         #region DELETE Person Section
         // DELETE methods if needed..
         #endregion DELETE Person Section
@@ -257,6 +280,28 @@ namespace Malshinon.DAL
                 CloseConnection();
 
                 _intelReport.Id = lastId;
+
+                // Increace numReaport in Reporter
+                _intelReport.Reporter.NumReports += 1;
+                UpdatePerson(_intelReport.Reporter);
+
+                // Increace numMentions in Target
+                _intelReport.Target.NumMentions += 1;
+                UpdatePerson(_intelReport.Target);
+
+                System.Console.WriteLine(GetReporterAverageTextLength(_intelReport.Reporter.Id));
+                // Check if reporter should be promoted to potential agent
+                if (_intelReport.Reporter.NumReports >= 10)
+                    if (GetReporterAverageTextLength(_intelReport.Reporter.Id) >= 100)
+                    {
+                        _intelReport.Reporter.Type = Type.Potential_Agent;
+                        UpdatePerson(_intelReport.Reporter);
+                    }
+
+                // Check if target should trigger threat alert
+                Console.WriteLine(_intelReport.Target.NumMentions);
+                if (_intelReport.Target.NumMentions >= 20)
+                    Console.WriteLine($"POTENTIAL THREAT ALERT: Target {_intelReport.Target.FirstName} {_intelReport.Target.LastName} has {_intelReport.Target.NumMentions} mentions");
             }
             catch (Exception ex) { Console.WriteLine($"Error while adding intel report: {ex.Message}"); }
             finally { CloseConnection(); }
