@@ -1,8 +1,9 @@
 using System.Text;
 using Malshinon.DAL;
+using Malshinon.Entities;
 using Type = Malshinon.Enums.Type;
 
-namespace Malshinon.Entities
+namespace Malshinon.UI
 {
     // Handles all user interaction and menu logic
     public static class ConsoleMenu
