@@ -41,11 +41,10 @@ namespace Malshinon.DAL
         #endregion Connection Management
 
         #region CREATE Person Section        
-        public Person? AddPerson(Person _person)
+        public Person? CreatePersonIfNotExists(Person _person)
         {
-            // If person exists return null
-            Person? person = GetPersonByFullName(_person.FirstName, _person.LastName);
-            if (person != null)
+            // Return null if Person already exist
+            if (GetPersonByFullName(_person.FirstName, _person.LastName) != null)
             {
                 Console.WriteLine($"[WARN] Person already exists: {_person.FullName}");
                 return null;
@@ -54,27 +53,37 @@ namespace Malshinon.DAL
             try
             {
                 Console.WriteLine($"[INFO] Creating new person: {_person.FullName} as {_person.Type}");
-
                 OpenConnection();
+                
                 MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
-
                 cmd.Parameters.AddWithValue("@fname", _person.FirstName);
                 cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
                 cmd.Parameters.AddWithValue("@secret_code", _person.SecretCode);
                 cmd.Parameters.AddWithValue("@type", _person.Type.ToString());
                 cmd.Parameters.AddWithValue("@num_reports", _person.NumReports);
                 cmd.Parameters.AddWithValue("@num_mentions", _person.NumMentions);
-                cmd.ExecuteNonQuery();
-
-                CloseConnection();
-                person = GetPersonByFullName(_person.FirstName, _person.LastName);
-
-                if (person != null) Console.WriteLine($"[SUCCESS] Person created successfully: ID={person.Id}, Name={person.FullName}, Type={person.Type}");
+                
+                if (cmd.ExecuteNonQuery() == 1)
+                {
+                    _person.Id = Convert.ToInt32(new MySqlCommand(SqlQueries.GetLastInsertId, _conn).ExecuteScalar());
+                    Console.WriteLine($"[SUCCESS] Person created: ID={_person.Id}, Name={_person.FullName}");
+                    return _person;
+                }
+                
+                Console.WriteLine($"[ERROR] Failed to insert person: {_person.FullName}");
+                return null;
             }
-            catch (Exception ex) { Console.WriteLine($"[ERROR] Failed to add person {_person.FullName}: {ex.Message}"); }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine($"[ERROR] MySQL error: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"[ERROR] General error: {ex.Message}");
+                return null;
+            }
             finally { CloseConnection(); }
-
-            return person;
         }
 
         // reutrn new reporter if not exist
@@ -83,7 +92,7 @@ namespace Malshinon.DAL
             Person? reporter = GetPersonByFullName(firstName, lastName);
 
             // reutrn bew reporter if not exist
-            return (reporter != null) ? null : AddPerson(new(firstName, lastName));
+            return (reporter != null) ? null : CreatePersonIfNotExists(new(firstName, lastName));
         }
 
         // return new target if not exist
@@ -92,7 +101,7 @@ namespace Malshinon.DAL
             Person? target = GetPersonByFullName(targetFirstName, targetLastName);
 
             // return new target if not exist
-            return (target != null) ? null : AddPerson(new(targetFirstName, targetLastName, type: Type.Target));
+            return (target != null) ? null : CreatePersonIfNotExists(new(targetFirstName, targetLastName, type: Type.Target));
         }
         #endregion CREATE Person Section
 

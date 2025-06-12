@@ -92,17 +92,17 @@ namespace Malshinon.UI
             do
             {
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
-                person = _dal.GetPersonByFullName(firstName, lastName);
-                if (person is null)
+                person = _dal.CreatePersonIfNotExists(new Person(firstName, lastName));
+                
+                if (person != null && person.Id != null)
+                {
+                    PrintSection($"האדם נוסף בהצלחה למערכת! (Person added successfully!) (id={person.Id})", ConsoleColor.Green);
                     break;
+                }
 
-                PrintError($"שגיאה: האדם {person.FirstName} {person.LastName} כבר קיים במערכת! (id={person.Id})");
-                PrintError($"Error: Person {person.FirstName} {person.LastName} already exists in the system! (id={person.Id})");
+                PrintError("שגיאה: לא ניתן היה להוסיף את האדם למערכת. (Error: Could not add person to system.)");
                 Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
             } while (true);
-
-            person = _dal.AddPerson(new Person(firstName, lastName));
-            PrintSection($"האדם נוסף בהצלחה למערכת! (Person added successfully!) (id={person?.Id})", ConsoleColor.Green);
         }
 
         private static void FindPerson()
