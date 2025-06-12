@@ -325,6 +325,7 @@ namespace Malshinon.DAL
                 // Check if target should trigger threat alert
                 if (_intelReport.Target.NumMentions >= 20)
                     Console.WriteLine($"[ALERT] STATUS CHANGE: POTENTIAL THREAT ALERT - Target {_intelReport.Target.FullName} (ID={_intelReport.Target.Id}) has {_intelReport.Target.NumMentions} mentions");
+
             }
             catch (Exception ex) { Console.WriteLine($"[ERROR] Error while submitting report: {ex.Message}"); }
             finally { CloseConnection(); }
