@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS intel_reports(
       id INT PRIMARY KEY AUTO_INCREMENT,
       reporter_id INT,
       target_id INT,
-      text VARCHAR(255),
+      text TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP(),
       FOREIGN KEY(reporter_id) REFERENCES people(id),
       FOREIGN KEY(target_id) REFERENCES people(id)
