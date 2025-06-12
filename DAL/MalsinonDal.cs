@@ -41,32 +41,49 @@ namespace Malshinon.DAL
         #endregion Connection Management
 
         #region CREATE Person Section        
-        public Person? AddPerson(Person _person)
+        public Person? CreatePersonIfNotExists(Person _person)
         {
-            // If person exists return null
-            Person? person = GetPersonByFullName(_person.FirstName, _person.LastName);
-            if (person != null) return null;
+            // Return null if Person already exist
+            if (GetPersonByFullName(_person.FirstName, _person.LastName) != null)
+            {
+                Console.WriteLine($"[WARN] Person already exists: {_person.FullName}");
+                return null;
+            }
 
             try
             {
+                Console.WriteLine($"[INFO] Creating new person: {_person.FullName} as {_person.Type}");
                 OpenConnection();
+                
                 MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
-
                 cmd.Parameters.AddWithValue("@fname", _person.FirstName);
                 cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
                 cmd.Parameters.AddWithValue("@secret_code", _person.SecretCode);
                 cmd.Parameters.AddWithValue("@type", _person.Type.ToString());
                 cmd.Parameters.AddWithValue("@num_reports", _person.NumReports);
                 cmd.Parameters.AddWithValue("@num_mentions", _person.NumMentions);
-                cmd.ExecuteNonQuery();
-
-                CloseConnection();
-                person = GetPersonByFullName(_person.FirstName, _person.LastName);
+                
+                if (cmd.ExecuteNonQuery() == 1)
+                {
+                    _person.Id = Convert.ToInt32(new MySqlCommand(SqlQueries.GetLastInsertId, _conn).ExecuteScalar());
+                    Console.WriteLine($"[SUCCESS] Person created: ID={_person.Id}, Name={_person.FullName}");
+                    return _person;
+                }
+                
+                Console.WriteLine($"[ERROR] Failed to insert person: {_person.FullName}");
+                return null;
             }
-            catch (Exception ex) { Console.WriteLine($"Error while adding person {_person.Id}: {ex.Message}"); }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine($"[ERROR] MySQL error: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"[ERROR] General error: {ex.Message}");
+                return null;
+            }
             finally { CloseConnection(); }
-
-            return person;
         }
 
         // reutrn new reporter if not exist
@@ -75,7 +92,7 @@ namespace Malshinon.DAL
             Person? reporter = GetPersonByFullName(firstName, lastName);
 
             // reutrn bew reporter if not exist
-            return (reporter != null) ? null : AddPerson(new(firstName, lastName));
+            return (reporter != null) ? null : CreatePersonIfNotExists(new(firstName, lastName));
         }
 
         // return new target if not exist
@@ -84,7 +101,7 @@ namespace Malshinon.DAL
             Person? target = GetPersonByFullName(targetFirstName, targetLastName);
 
             // return new target if not exist
-            return (target != null) ? null : AddPerson(new(targetFirstName, targetLastName, type: Type.Target));
+            return (target != null) ? null : CreatePersonIfNotExists(new(targetFirstName, targetLastName, type: Type.Target));
         }
         #endregion CREATE Person Section
 
@@ -263,6 +280,8 @@ namespace Malshinon.DAL
         #region IntelReport Section
         public IntelReport? AddIntelReport(IntelReport _intelReport)
         {
+            Console.WriteLine($"[INFO] Starting report submission: Reporter={_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}), Target={_intelReport.Target.FullName} (ID={_intelReport.Target.Id})");
+
             try
             {
                 OpenConnection();
@@ -281,29 +300,34 @@ namespace Malshinon.DAL
 
                 _intelReport.Id = lastId;
 
+                Console.WriteLine($"[SUCCESS] Report successfully submitted with ID={lastId}");
+
                 // Increace numReaport in Reporter
                 _intelReport.Reporter.NumReports += 1;
                 UpdatePerson(_intelReport.Reporter);
+                Console.WriteLine($"[INFO] Updated reporter stats: {_intelReport.Reporter.FullName} now has {_intelReport.Reporter.NumReports} reports");
 
                 // Increace numMentions in Target
                 _intelReport.Target.NumMentions += 1;
                 UpdatePerson(_intelReport.Target);
+                Console.WriteLine($"[INFO] Updated target stats: {_intelReport.Target.FullName} now has {_intelReport.Target.NumMentions} mentions");
 
-                System.Console.WriteLine(GetReporterAverageTextLength(_intelReport.Reporter.Id));
                 // Check if reporter should be promoted to potential agent
                 if (_intelReport.Reporter.NumReports >= 10)
                     if (GetReporterAverageTextLength(_intelReport.Reporter.Id) >= 100)
                     {
+                        Console.WriteLine($"[ALERT] STATUS CHANGE: Promoting reporter to Potential Agent - {_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}) has {_intelReport.Reporter.NumReports} reports with avg length {GetReporterAverageTextLength(_intelReport.Reporter.Id):F2} chars");
                         _intelReport.Reporter.Type = Type.Potential_Agent;
                         UpdatePerson(_intelReport.Reporter);
+                        Console.WriteLine($"[SUCCESS] Successfully promoted {_intelReport.Reporter.FullName} to Potential_Agent status");
                     }
 
                 // Check if target should trigger threat alert
-                Console.WriteLine(_intelReport.Target.NumMentions);
                 if (_intelReport.Target.NumMentions >= 20)
-                    Console.WriteLine($"POTENTIAL THREAT ALERT: Target {_intelReport.Target.FirstName} {_intelReport.Target.LastName} has {_intelReport.Target.NumMentions} mentions");
+                    Console.WriteLine($"[ALERT] STATUS CHANGE: POTENTIAL THREAT ALERT - Target {_intelReport.Target.FullName} (ID={_intelReport.Target.Id}) has {_intelReport.Target.NumMentions} mentions");
+
             }
-            catch (Exception ex) { Console.WriteLine($"Error while adding intel report: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"[ERROR] Error while submitting report: {ex.Message}"); }
             finally { CloseConnection(); }
 
             return _intelReport;

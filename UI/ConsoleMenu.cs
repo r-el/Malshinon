@@ -92,17 +92,17 @@ namespace Malshinon.UI
             do
             {
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
-                person = _dal.GetPersonByFullName(firstName, lastName);
-                if (person is null)
+                person = _dal.CreatePersonIfNotExists(new Person(firstName, lastName));
+                
+                if (person != null && person.Id != null)
+                {
+                    PrintSection($"האדם נוסף בהצלחה למערכת! (Person added successfully!) (id={person.Id})", ConsoleColor.Green);
                     break;
+                }
 
-                PrintError($"שגיאה: האדם {person.FirstName} {person.LastName} כבר קיים במערכת! (id={person.Id})");
-                PrintError($"Error: Person {person.FirstName} {person.LastName} already exists in the system! (id={person.Id})");
+                PrintError("שגיאה: לא ניתן היה להוסיף את האדם למערכת. (Error: Could not add person to system.)");
                 Console.WriteLine("\nנסה שוב עם שם אחר (Try again with a different name):");
             } while (true);
-
-            person = _dal.AddPerson(new Person(firstName, lastName));
-            PrintSection($"האדם נוסף בהצלחה למערכת! (Person added successfully!) (id={person?.Id})", ConsoleColor.Green);
         }
 
         private static void FindPerson()
@@ -132,8 +132,10 @@ namespace Malshinon.UI
             // If person type is 'Target', update Type to 'Both'
             else if (reporter.Type == Type.Target) // What if the person type of reporter is Potential_Agent ???
             {
+                Console.WriteLine($"[LOG] STATUS CHANGE: Converting Target to Reporter+Target (Both) - {reporter.FirstName} (ID={reporter.Id})");
                 reporter.Type = Type.Both;
                 _dal.UpdatePerson(reporter);
+                Console.WriteLine($"[LOG] Successfully updated {reporter.FullName} status to Both");
             }
 
             // Get the a valid report including target name
@@ -149,8 +151,10 @@ namespace Malshinon.UI
             // If person type of 'Target' is 'Reporter', update Type to 'Both'
             else if (target.Type == Type.Reporter) // What if the person type of target is Potential_Agent ???
             {
+                Console.WriteLine($"[LOG] STATUS CHANGE: Converting Reporter to Target+Reporter (Both) - {target.FullName} (ID={target.Id})");
                 target.Type = Type.Both;
                 _dal.UpdatePerson(target);
+                Console.WriteLine($"[LOG] Successfully updated {target.FirstName} {target.LastName} status to Both");
             }
 
             if (reporter != null && target != null)
