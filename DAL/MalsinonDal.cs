@@ -47,13 +47,13 @@ namespace Malshinon.DAL
             Person? person = GetPersonByFullName(_person.FirstName, _person.LastName);
             if (person != null)
             {
-                Console.WriteLine($"[LOG] Person already exists: {_person.FirstName} {_person.LastName}");
+                Console.WriteLine($"[WARN] Person already exists: {_person.FullName}");
                 return null;
             }
 
             try
             {
-                Console.WriteLine($"[LOG] Creating new person: {_person.FirstName} {_person.LastName} as {_person.Type}");
+                Console.WriteLine($"[INFO] Creating new person: {_person.FullName} as {_person.Type}");
 
                 OpenConnection();
                 MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
@@ -69,9 +69,9 @@ namespace Malshinon.DAL
                 CloseConnection();
                 person = GetPersonByFullName(_person.FirstName, _person.LastName);
 
-                if (person != null) Console.WriteLine($"[LOG] Successfully created new person: ID={person.Id}, Name={person.FirstName} {person.LastName}, Type={person.Type}");
+                if (person != null) Console.WriteLine($"[SUCCESS] Person created successfully: ID={person.Id}, Name={person.FullName}, Type={person.Type}");
             }
-            catch (Exception ex) { Console.WriteLine($"Error while adding person {_person.Id}: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"[ERROR] Failed to add person {_person.FullName}: {ex.Message}"); }
             finally { CloseConnection(); }
 
             return person;
@@ -271,7 +271,7 @@ namespace Malshinon.DAL
         #region IntelReport Section
         public IntelReport? AddIntelReport(IntelReport _intelReport)
         {
-            Console.WriteLine($"[LOG] Starting report submission: Reporter={_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}), Target={_intelReport.Target.FullName} (ID={_intelReport.Target.Id})");
+            Console.WriteLine($"[INFO] Starting report submission: Reporter={_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}), Target={_intelReport.Target.FullName} (ID={_intelReport.Target.Id})");
 
             try
             {
@@ -291,33 +291,33 @@ namespace Malshinon.DAL
 
                 _intelReport.Id = lastId;
 
-                Console.WriteLine($"[LOG] Report successfully submitted with ID={lastId}");
+                Console.WriteLine($"[SUCCESS] Report successfully submitted with ID={lastId}");
 
                 // Increace numReaport in Reporter
                 _intelReport.Reporter.NumReports += 1;
                 UpdatePerson(_intelReport.Reporter);
-                Console.WriteLine($"[LOG] Updated reporter stats: {_intelReport.Reporter.FullName} now has {_intelReport.Reporter.NumReports} reports");
+                Console.WriteLine($"[INFO] Updated reporter stats: {_intelReport.Reporter.FullName} now has {_intelReport.Reporter.NumReports} reports");
 
                 // Increace numMentions in Target
                 _intelReport.Target.NumMentions += 1;
                 UpdatePerson(_intelReport.Target);
-                Console.WriteLine($"[LOG] Updated target stats: {_intelReport.Target.FullName} now has {_intelReport.Target.NumMentions} mentions");
+                Console.WriteLine($"[INFO] Updated target stats: {_intelReport.Target.FullName} now has {_intelReport.Target.NumMentions} mentions");
 
                 // Check if reporter should be promoted to potential agent
                 if (_intelReport.Reporter.NumReports >= 10)
                     if (GetReporterAverageTextLength(_intelReport.Reporter.Id) >= 100)
                     {
-                        Console.WriteLine($"[LOG] STATUS CHANGE: Promoting reporter to Potential Agent - {_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}) has {_intelReport.Reporter.NumReports} reports with avg length {GetReporterAverageTextLength(_intelReport.Reporter.Id):F2} chars");
+                        Console.WriteLine($"[ALERT] STATUS CHANGE: Promoting reporter to Potential Agent - {_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}) has {_intelReport.Reporter.NumReports} reports with avg length {GetReporterAverageTextLength(_intelReport.Reporter.Id):F2} chars");
                         _intelReport.Reporter.Type = Type.Potential_Agent;
                         UpdatePerson(_intelReport.Reporter);
-                        Console.WriteLine($"[LOG] Successfully promoted {_intelReport.Reporter.FullName} to Potential_Agent status");
+                        Console.WriteLine($"[SUCCESS] Successfully promoted {_intelReport.Reporter.FullName} to Potential_Agent status");
                     }
 
                 // Check if target should trigger threat alert
                 if (_intelReport.Target.NumMentions >= 20)
-                    Console.WriteLine($"[LOG] STATUS CHANGE: POTENTIAL THREAT ALERT - Target {_intelReport.Target.FullName} (ID={_intelReport.Target.Id}) has {_intelReport.Target.NumMentions} mentions");
+                    Console.WriteLine($"[ALERT] STATUS CHANGE: POTENTIAL THREAT ALERT - Target {_intelReport.Target.FullName} (ID={_intelReport.Target.Id}) has {_intelReport.Target.NumMentions} mentions");
             }
-            catch (Exception ex) { Console.WriteLine($"[LOG] Error while submitting report: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"[ERROR] Error while submitting report: {ex.Message}"); }
             finally { CloseConnection(); }
 
             return _intelReport;
