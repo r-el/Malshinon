@@ -5,18 +5,19 @@ using Type = Malshinon.Enums.Type;
 
 namespace Malshinon.DAL
 {
-    public class MalshinonDal
+    public sealed class MalshinonDal // Sealed to prevent inheritance
     {
+        #region Singleton Implementation
+        private static MalshinonDal? _instance = null;
+
+        public static MalshinonDal Instance { get { return _instance ??= new MalshinonDal(); } }
+        #endregion Singleton Implementation
+
         #region Fields and Constructor
         private readonly string _connStr = "server=localhost;port=3307;user=root;password=;database=malshinon";
         private MySqlConnection? _conn;
 
-        public MalshinonDal()
-        {
-            try { OpenConnection(); }
-            catch (MySqlException ex) { Console.WriteLine($"MySQL Error: {ex.Message}"); }
-            catch (Exception ex) { Console.WriteLine($"General Error: {ex.Message}"); }
-        }
+        private MalshinonDal() { /* Private constructor to prevent instantiation */ }
         #endregion Fields and Constructor
 
         #region Connection Management
@@ -54,7 +55,7 @@ namespace Malshinon.DAL
             {
                 Console.WriteLine($"[INFO] Creating new person: {_person.FullName} as {_person.Type}");
                 OpenConnection();
-                
+
                 MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
                 cmd.Parameters.AddWithValue("@fname", _person.FirstName);
                 cmd.Parameters.AddWithValue("@lname", _person.LastName ?? "");
@@ -62,14 +63,14 @@ namespace Malshinon.DAL
                 cmd.Parameters.AddWithValue("@type", _person.Type.ToString());
                 cmd.Parameters.AddWithValue("@num_reports", _person.NumReports);
                 cmd.Parameters.AddWithValue("@num_mentions", _person.NumMentions);
-                
+
                 if (cmd.ExecuteNonQuery() == 1)
                 {
                     _person.Id = Convert.ToInt32(new MySqlCommand(SqlQueries.GetLastInsertId, _conn).ExecuteScalar());
                     Console.WriteLine($"[SUCCESS] Person created: ID={_person.Id}, Name={_person.FullName}");
                     return _person;
                 }
-                
+
                 Console.WriteLine($"[ERROR] Failed to insert person: {_person.FullName}");
                 return null;
             }
@@ -78,20 +79,20 @@ namespace Malshinon.DAL
                 Console.WriteLine($"[ERROR] MySQL error: {ex.Message}");
                 return null;
             }
-            catch (Exception ex) 
-            { 
+            catch (Exception ex)
+            {
                 Console.WriteLine($"[ERROR] General error: {ex.Message}");
                 return null;
             }
             finally { CloseConnection(); }
         }
 
-        // reutrn new reporter if not exist
-        public Person? AddNewReporter(string firstName, string? lastName) // TODO: maybe to move to controller file
+        // return new reporter if not exist
+        public Person? AddNewReporter(string firstName, string? lastName)
         {
             Person? reporter = GetPersonByFullName(firstName, lastName);
 
-            // reutrn bew reporter if not exist
+            // return new reporter if not exist
             return (reporter != null) ? null : CreatePersonIfNotExists(new(firstName, lastName));
         }
 
