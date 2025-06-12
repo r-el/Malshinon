@@ -1,5 +1,5 @@
 using System.Text;
-using Malshinon.DAL;
+using Malshinon.BusinessLogic;
 using Malshinon.Entities;
 using Type = Malshinon.Enums.Type;
 
@@ -8,7 +8,8 @@ namespace Malshinon.UI
     // Handles all user interaction and menu logic
     public static class ConsoleMenu
     {
-        private static MalshinonDal Dal => MalshinonDal.Instance;
+        private static readonly IntelService _intelService = new();
+        
         public static void Run()
         {
             while (true)
@@ -65,7 +66,7 @@ namespace Malshinon.UI
                     FindPerson();
                     break;
                 case 3:
-                    Console.WriteLine(string.Join("\n", Dal.FetchPeople()));
+                    Console.WriteLine(string.Join("\n", _intelService.GetAllPeople()));
                     break;
                 case 4:
                     AddNewIntelReport();
@@ -92,7 +93,7 @@ namespace Malshinon.UI
             do
             {
                 (firstName, lastName) = Person.ReadFullNameFromConsole();
-                person = Dal.CreatePersonIfNotExists(new Person(firstName, lastName));
+                person = _intelService.AddNewReporter(firstName, lastName);
                 
                 if (person != null && person.Id != null)
                 {
@@ -108,7 +109,7 @@ namespace Malshinon.UI
         private static void FindPerson()
         {
             (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
-            Person? person = Dal.GetPersonByFullName(reporterFirstName, reporterLastName);
+            Person? person = _intelService.GetPersonByFullName(reporterFirstName, reporterLastName);
 
             if (person != null)
                 Console.WriteLine(person);
@@ -123,18 +124,17 @@ namespace Malshinon.UI
         {
             // Identify the reporter
             (string reporterFirstName, string? reporterLastName) = Person.ReadFullNameFromConsole();
-            Person? reporter = Dal.GetPersonByFullName(reporterFirstName, reporterLastName);
+            Person? reporter = _intelService.GetPersonByFullName(reporterFirstName, reporterLastName);
 
             // If reporter not exist, create new Reporter
             if (reporter is null)
-                reporter = Dal.AddNewReporter(reporterFirstName, reporterLastName);
+                reporter = _intelService.AddNewReporter(reporterFirstName, reporterLastName);
 
             // If person type is 'Target', update Type to 'Both'
-            else if (reporter.Type == Type.Target) // What if the person type of reporter is Potential_Agent ???
+            else if (reporter.Type == Type.Target)
             {
                 Console.WriteLine($"[LOG] STATUS CHANGE: Converting Target to Reporter+Target (Both) - {reporter.FirstName} (ID={reporter.Id})");
-                reporter.Type = Type.Both;
-                Dal.UpdatePerson(reporter);
+                _intelService.UpdatePersonType(reporter, Type.Both);
                 Console.WriteLine($"[LOG] Successfully updated {reporter.FullName} status to Both");
             }
 
@@ -142,26 +142,27 @@ namespace Malshinon.UI
             (string textReport, string targetFirstName, string? targetLastName) = ReadIntelReportFromConsole();
 
             // Identify the target
-            Person? target = Dal.GetPersonByFullName(targetFirstName, targetLastName);
+            Person? target = _intelService.GetPersonByFullName(targetFirstName, targetLastName);
 
             // If target not exist, create new 'Target'
             if (target is null)
-                target = Dal.AddNewTarget(targetFirstName, targetLastName); // Fix it
+                target = _intelService.AddNewTarget(targetFirstName, targetLastName);
 
             // If person type of 'Target' is 'Reporter', update Type to 'Both'
-            else if (target.Type == Type.Reporter) // What if the person type of target is Potential_Agent ???
+            else if (target.Type == Type.Reporter)
             {
                 Console.WriteLine($"[LOG] STATUS CHANGE: Converting Reporter to Target+Reporter (Both) - {target.FullName} (ID={target.Id})");
-                target.Type = Type.Both;
-                Dal.UpdatePerson(target);
+                _intelService.UpdatePersonType(target, Type.Both);
                 Console.WriteLine($"[LOG] Successfully updated {target.FirstName} {target.LastName} status to Both");
             }
 
             if (reporter != null && target != null)
             {
-                IntelReport intelReport = new(reporter, target, textReport);
-                Console.WriteLine(Dal.AddIntelReport(intelReport));
-                PrintSection("Intelligence report saved successfully.", ConsoleColor.Green);
+                var intelReport = _intelService.SubmitIntelReport(reporter, target, textReport);
+                if (intelReport != null)
+                    PrintSection("Intelligence report saved successfully.", ConsoleColor.Green);
+                else
+                    PrintError("Error saving intelligence report.");
             }
             else PrintError("Error. Cannot insert IntelReport if Reporter or Target is null.");
         }

@@ -44,16 +44,14 @@ namespace Malshinon.DAL
         #region CREATE Person Section        
         public Person? CreatePersonIfNotExists(Person _person)
         {
-            // Return null if Person already exist
+            // Check if Person already exists (basic validation)
             if (GetPersonByFullName(_person.FirstName, _person.LastName) != null)
             {
-                Console.WriteLine($"[WARN] Person already exists: {_person.FullName}");
                 return null;
             }
 
             try
             {
-                Console.WriteLine($"[INFO] Creating new person: {_person.FullName} as {_person.Type}");
                 OpenConnection();
 
                 MySqlCommand cmd = new(SqlQueries.InsertPerson, _conn);
@@ -67,11 +65,9 @@ namespace Malshinon.DAL
                 if (cmd.ExecuteNonQuery() == 1)
                 {
                     _person.Id = Convert.ToInt32(new MySqlCommand(SqlQueries.GetLastInsertId, _conn).ExecuteScalar());
-                    Console.WriteLine($"[SUCCESS] Person created: ID={_person.Id}, Name={_person.FullName}");
                     return _person;
                 }
 
-                Console.WriteLine($"[ERROR] Failed to insert person: {_person.FullName}");
                 return null;
             }
             catch (MySqlException ex)
@@ -87,23 +83,6 @@ namespace Malshinon.DAL
             finally { CloseConnection(); }
         }
 
-        // return new reporter if not exist
-        public Person? AddNewReporter(string firstName, string? lastName)
-        {
-            Person? reporter = GetPersonByFullName(firstName, lastName);
-
-            // return new reporter if not exist
-            return (reporter != null) ? null : CreatePersonIfNotExists(new(firstName, lastName));
-        }
-
-        // return new target if not exist
-        public Person? AddNewTarget(string targetFirstName, string? targetLastName)
-        {
-            Person? target = GetPersonByFullName(targetFirstName, targetLastName);
-
-            // return new target if not exist
-            return (target != null) ? null : CreatePersonIfNotExists(new(targetFirstName, targetLastName, type: Type.Target));
-        }
         #endregion CREATE Person Section
 
         #region READ Person Section
@@ -228,7 +207,7 @@ namespace Malshinon.DAL
                 cmd.Parameters.AddWithValue("@id", person.Id);
                 cmd.Parameters.AddWithValue("@firstName", person.FirstName);
                 cmd.Parameters.AddWithValue("@lastName", person.LastName ?? "");
-                cmd.Parameters.AddWithValue("@secterCode", person.SecretCode);
+                cmd.Parameters.AddWithValue("@secretCode", person.SecretCode);
                 cmd.Parameters.AddWithValue("@type", person.Type.ToString());
                 cmd.Parameters.AddWithValue("@numReports", person.NumReports);
                 cmd.Parameters.AddWithValue("@numMentions", person.NumMentions);
@@ -252,7 +231,7 @@ namespace Malshinon.DAL
         #endregion UPDATE Person Section
 
         #region Helper Methods
-        private double GetReporterAverageTextLength(int? reporterId)
+        public double GetReporterAverageTextLength(int? reporterId)
         {
             if (reporterId == null || reporterId <= 0) return 0;
 
@@ -281,8 +260,6 @@ namespace Malshinon.DAL
         #region IntelReport Section
         public IntelReport? AddIntelReport(IntelReport _intelReport)
         {
-            Console.WriteLine($"[INFO] Starting report submission: Reporter={_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}), Target={_intelReport.Target.FullName} (ID={_intelReport.Target.Id})");
-
             try
             {
                 OpenConnection();
@@ -297,41 +274,15 @@ namespace Malshinon.DAL
                 cmd = new(SqlQueries.GetLastInsertId, _conn);
                 int lastId = Convert.ToInt32(cmd.ExecuteScalar());
 
-                CloseConnection();
-
                 _intelReport.Id = lastId;
-
-                Console.WriteLine($"[SUCCESS] Report successfully submitted with ID={lastId}");
-
-                // Increace numReaport in Reporter
-                _intelReport.Reporter.NumReports += 1;
-                UpdatePerson(_intelReport.Reporter);
-                Console.WriteLine($"[INFO] Updated reporter stats: {_intelReport.Reporter.FullName} now has {_intelReport.Reporter.NumReports} reports");
-
-                // Increace numMentions in Target
-                _intelReport.Target.NumMentions += 1;
-                UpdatePerson(_intelReport.Target);
-                Console.WriteLine($"[INFO] Updated target stats: {_intelReport.Target.FullName} now has {_intelReport.Target.NumMentions} mentions");
-
-                // Check if reporter should be promoted to potential agent
-                if (_intelReport.Reporter.NumReports >= 10)
-                    if (GetReporterAverageTextLength(_intelReport.Reporter.Id) >= 100)
-                    {
-                        Console.WriteLine($"[ALERT] STATUS CHANGE: Promoting reporter to Potential Agent - {_intelReport.Reporter.FullName} (ID={_intelReport.Reporter.Id}) has {_intelReport.Reporter.NumReports} reports with avg length {GetReporterAverageTextLength(_intelReport.Reporter.Id):F2} chars");
-                        _intelReport.Reporter.Type = Type.Potential_Agent;
-                        UpdatePerson(_intelReport.Reporter);
-                        Console.WriteLine($"[SUCCESS] Successfully promoted {_intelReport.Reporter.FullName} to Potential_Agent status");
-                    }
-
-                // Check if target should trigger threat alert
-                if (_intelReport.Target.NumMentions >= 20)
-                    Console.WriteLine($"[ALERT] STATUS CHANGE: POTENTIAL THREAT ALERT - Target {_intelReport.Target.FullName} (ID={_intelReport.Target.Id}) has {_intelReport.Target.NumMentions} mentions");
-
+                return _intelReport;
             }
-            catch (Exception ex) { Console.WriteLine($"[ERROR] Error while submitting report: {ex.Message}"); }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"[ERROR] Error while submitting report: {ex.Message}");
+                return null;
+            }
             finally { CloseConnection(); }
-
-            return _intelReport;
         }
         #endregion IntelReport Section
     }

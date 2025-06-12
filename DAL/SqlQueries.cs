@@ -20,7 +20,7 @@ namespace Malshinon.DAL
             UPDATE people SET
                 first_name = @firstName,
                 last_name = @lastName,
-                secret_code = @secterCode,
+                secret_code = @secretCode,
                 type = @type,
                 num_reports = @numReports,
                 num_mentions = @numMentions
